@@ -15,12 +15,15 @@ const bodyParser = require('body-parser')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended:true}))
 
+const fileUpload = require('express-fileupload')
+app.use(fileUpload())
+
 app.listen(4000, () => {
     console.log('App listening on port 4000')
 })
 
 app.get('/', async (req, res)=>{
-    const blogposts= await BlogPost.find({})
+    const blogposts= await BlogPost.find({}).sort([['datePosted', -1]]);
     res.render('index', {
         blogposts
     })
@@ -46,12 +49,18 @@ app.get('/posts/new', (req, res)=>{
 })
 
 app.post('/posts/store', async (req, res) => {
-    await BlogPost.create(req.body)
-    .then(result => {
-        console.log(result)
+    let image = req.files.image;
+    image.mv(path.resolve(__dirname, "public/img", image.name), async (error) =>{
+        await BlogPost.create({
+            ...req.body,
+            image: '/img/' + image.name
+        })
+        .then(result => {
+            console.log(result)
+        })
+        .catch(err => {
+            console.log(err)
+        })
+        res.redirect('/')
     })
-    .catch(err => {
-        console.log(err)
-    })
-    res.redirect('/')
 })
